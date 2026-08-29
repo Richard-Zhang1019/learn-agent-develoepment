@@ -44,30 +44,36 @@ app.get('/stream', async (req, res) => {
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
         let done = false;
-
         let buffer = '';
 
         // 读取流数据并转发到客户端
         while (!done) {
             const { value, done: doneReading } = await reader.read();
-            done = doneReading;
-            const chunkValue = buffer + decoder.decode(value, { stream: true });
-            buffer = '';
+            if (doneReading) {
+                done = true;
+            }
 
-            // 按行分割数据，每行以 "data: " 开头，并传递给客户端
-            const lines = chunkValue.split('\n').filter(line => line.trim() && line.startsWith('data: '));
+            buffer += decoder.decode(value, { stream: true });
+
+            // 只处理完整的行（以 \n 结尾），不完整的留在 buffer 里等下一个 chunk
+            const lines = buffer.split('\n');
+            buffer = lines.pop() || '';
+
             for (const line of lines) {
-                const incoming = line.slice(6);
+                const trimmed = line.trim();
+                if (!trimmed.startsWith('data: ')) continue;
+
+                const incoming = trimmed.slice(6);
                 if (incoming === '[DONE]') {
                     done = true;
                     break;
                 }
                 try {
                     const data = JSON.parse(incoming);
-                    const delta = data.choices[0].delta.content;
-                    if(delta) res.write(`data: ${delta}\n\n`); // 发送数据到客户端
+                    const delta = data.choices[0].delta?.content;
+                    if (delta) res.write(`data: ${delta}\n\n`); // 发送数据到客户端
                 } catch (ex) {
-                    buffer += incoming;
+                    console.error('Parse error:', ex, incoming);
                 }
             }
         }
@@ -77,8 +83,9 @@ app.get('/stream', async (req, res) => {
         res.end(); // 关闭连接
 
     } catch (error) {
-        console.error('Error fetching from OpenAI:', error);
-        res.write('data: Error fetching from OpenAI\n\n');
+        console.error('Error fetching from OpenAI:', error?.message || error);
+        if (error?.cause) console.error('Cause:', error.cause);
+        res.write(`data: Error: ${error?.message || 'Unknown error'}\n\n`);
         res.end();
     }
 });

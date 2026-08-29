@@ -11,6 +11,7 @@
   "dependencies": {
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
+    "markstream-vue": "^2.0.6",
     "vue": "^3.5.41"
   },
   "devDependencies": {
