@@ -4,17 +4,19 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "jiti server & vite",
     "build": "vue-tsc -b && vite build",
     "preview": "vite preview"
   },
   "dependencies": {
     "@bearbobo/ling": "^1.0.5",
+    "axios": "^1.20.0",
     "body-parser": "^2.3.0",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "jiti": "^2.7.0",
     "jsonuri": "^4.0.1",
+    "serpapi": "^2.2.1",
     "vue": "^3.5.41"
   },
   "devDependencies": {
