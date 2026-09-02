@@ -1,14 +1,16 @@
 <script setup lang="ts">
+import { type PropType } from 'vue'
+
 defineProps({
   questions: {
-    type: Array,
+    type: Array as PropType<string[]>,
     default: [],
   }
 });
 
 const emit = defineEmits(['selection'])
-const selection = (question: string) => {
-  emit('selection', question)
+const selection = (question: string, index: number) => {
+  emit('selection', question, index)
 }
 </script>
 
@@ -16,7 +18,7 @@ const selection = (question: string) => {
   <div class="questions">
     <div>我猜你想要问的是：</div>
     <div v-for="(question, index) in questions" :key="index">
-      <div class="question selection" @click="selection(question as string)">{{ question }}</div>
+      <div class="question selection" @click="selection(question, index)">{{ question }}</div>
     </div>
   </div>
 </template>
