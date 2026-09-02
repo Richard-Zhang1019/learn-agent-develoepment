@@ -1,3 +1,8 @@
+import { pipeline } from 'node:stream/promises';
+import { type ChatConfig, Ling } from '@bearbobo/ling';
+import makeQuestionPrompt from './src/lib/prompts/make-question.tpl';
+import quickAnswerPrompt from './src/lib/prompts/quick-answer.tpl';
+import bodyParser from 'body-parser';
 import * as dotenv from 'dotenv'
 import express from 'express'
 import { getJson } from 'serpapi'
@@ -12,6 +17,63 @@ const serpApiKey = process.env.SERP_API_KEY || process.env.VITE_SERP_API_KEY
 const app = express()
 const port = 3000
 const endpoint = 'https://api.deepseek.com/chat/completions'
+
+app.use(express.json({ limit: '50mb' }));
+app.use(bodyParser.json());
+
+const config: ChatConfig = {
+    model_name: 'deepseek-v4-pro',
+    api_key: openaiApiKey,
+    endpoint,
+    sse: true,
+};
+
+app.get('/make-question', async (req, res) => {
+    const question = req.query.question as string;
+
+    // ------- The work flow start --------
+    const ling = new Ling(config);
+    const bot = ling.createBot();
+    bot.addPrompt(makeQuestionPrompt);
+    bot.chat(question);
+
+    ling.close();
+
+    // setting below headers for Streaming the data
+    res.writeHead(200, {
+        'Content-Type': "text/event-stream",
+        'Cache-Control': "no-cache",
+        'Connection': "keep-alive"
+    });
+
+    pipeline((ling.stream), res);
+});
+
+app.get('/quick-answer', async (req, res) => {
+    const question = req.query.question as string;
+
+    // ------- The work flow start --------
+    const ling = new Ling(config);
+    const bot = ling.createBot('quick-answer', {}, {
+        response_format: { type: 'text' }
+    });
+    bot.addPrompt(quickAnswerPrompt, {
+        gender:'female',
+        age: '6',
+    });
+    bot.chat(question);
+
+    ling.close();
+
+    // setting below headers for Streaming the data
+    res.writeHead(200, {
+        'Content-Type': "text/event-stream",
+        'Cache-Control': "no-cache",
+        'Connection': "keep-alive"
+    });
+
+    pipeline((ling.stream), res);
+});
 
 // 搜索端点：serpapi 是 Node 库，只能在服务端调用
 app.get('/search', async (req, res) => {

@@ -3,11 +3,8 @@ import { ref } from 'vue'
 import heroImg from '../assets/hero.png'
 import viteLogo from '../assets/vite.svg'
 import vueLogo from '../assets/vue.svg'
-import { search } from '../lib/search'
+
 const count = ref(0)
-// search('狮子和老虎谁更厉害').then((result) => {
-//   console.log('result at line 15:', result)
-// })
 </script>
 
 <template>
