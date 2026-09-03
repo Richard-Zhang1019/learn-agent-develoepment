@@ -9,14 +9,14 @@
   32 分钟以上 结束
 */
 
-interface TimelineStep {
+export interface TimelineStep {
   startTime: number;
   endTime: number;
   focus: string; // 聚焦的问题，例如项目、技术、代码、算法、非技术问题
   prompt: string; // 提示语
 }
 
-interface TimelineConfig {
+export interface TimelineConfig {
   steps: TimelineStep[];
 }
 
