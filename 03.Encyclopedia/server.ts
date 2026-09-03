@@ -2,6 +2,7 @@ import { pipeline } from 'node:stream/promises';
 import { type ChatConfig, Ling } from '@bearbobo/ling';
 import makeQuestionPrompt from './src/lib/prompts/make-question.tpl';
 import quickAnswerPrompt from './src/lib/prompts/quick-answer.tpl';
+import outlinePrompt from './src/lib/prompts/outline.tpl';
 import { search } from './src/lib/service/search'
 import bodyParser from 'body-parser';
 import * as dotenv from 'dotenv'
@@ -32,15 +33,6 @@ const config: ChatConfig = {
 app.get('/make-question', async (req, res) => {
   const question = req.query.question as string;
 
-  const matches = uri.match(/questions\/(\d+)\/query\/(\d+)$/);
-    if (matches) {
-      const index = parseInt(matches[1]);
-      const queryIndex = parseInt(matches[2]);
-      queries[index] = queries[index] || [];
-      queries[index][queryIndex] = queries[index][queryIndex] || '';
-      queries[index][queryIndex] += delta;
-    }
-
   // ------- The work flow start --------
   const ling = new Ling(config);
   const bot = ling.createBot();
@@ -59,10 +51,15 @@ app.get('/make-question', async (req, res) => {
   pipeline((ling.stream), res);
 });
 
-app.get('/quick-answer', async (req, res) => {
+app.get('/generate', async (req, res) => {
+  const userConfig = {
+    gender: 'female',
+    age: '6',
+  };
   const question = req.query.question as string;
   const query = req.query.query as string;
   let searchResults = '';
+
   if (query) {
     const queries = query.split(';');
     const promises = queries.map((query) => search(query));
@@ -71,17 +68,24 @@ app.get('/quick-answer', async (req, res) => {
   }
   // ------- The work flow start --------
   const ling = new Ling(config);
-  const bot = ling.createBot('quick-answer', {}, {
+
+  const quickAnswerBot = ling.createBot('quick-answer', {}, {
     response_format: { type: 'text' }
   });
-  bot.addPrompt(quickAnswerPrompt, {
+  quickAnswerBot.addPrompt(quickAnswerPrompt, userConfig);
+
+  const outlineBot = ling.createBot('outline');
+  outlineBot.addPrompt(outlinePrompt, userConfig);
+  quickAnswerBot.addPrompt(quickAnswerPrompt, {
     gender: 'female',
     age: '6',
   });
   if (searchResults) {
-    bot.addPrompt(`参考资料:\n${searchResults}`)
+    quickAnswerBot.addPrompt(`参考资料:\n${searchResults}`)
+    outlineBot.addPrompt(`参考资料:\n${searchResults}`)
   }
-  bot.chat(question);
+  quickAnswerBot.chat(question);
+  outlineBot.chat(question);
 
   ling.close();
 
